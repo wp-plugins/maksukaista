@@ -1,4 +1,4 @@
-=== Maksukaista paymentgateway for Woocommerce ===
+=== Maksukaista payment gateway for Woocommerce ===
 Contributors: kkopone
 Donate link: 
 Tags: payment gateway, maksukaista, verkkomaksut, pankit
