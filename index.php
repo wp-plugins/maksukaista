@@ -3,7 +3,7 @@
 Plugin Name: Maksukaista Payment Gateway
 Plugin URI: http://www.maksukaista.fi
 Description: Maksukaista Payment Gateway Integration for Woocommerce
-Version: 1.0
+Version: 1.1
 Author: Paybyway Oy
 Author URI: http://www.maksukaista.fi
 */
@@ -15,25 +15,6 @@ function woocommerce_add_WC_Gateway_Maksukaista($methods)
 	return $methods;
 }
 add_filter('woocommerce_payment_gateways', 'woocommerce_add_WC_Gateway_Maksukaista');
-
-function maksukaista_show_messages()
-{
-	if(isset($_GET['settlement_msg']))
-	{
-		$error = (isset($_GET['settlement_result']) && $_GET['settlement_result'] == '0');
-		$message = sanitize_text_field(urldecode($_GET['settlement_msg']));
-
-		if($error)
-			$html = '<div id="message" class="error">';
-		else
-			$html = '<div id="message" class="updated fade">';
-
-		$html .= "<p><strong>$message</strong></p></div>";
-		echo $html;
-	}
-}
-
-add_action('admin_notices', 'maksukaista_show_messages'); 
 
 function init_maksukaista_gateway()
 {
@@ -63,12 +44,10 @@ function init_maksukaista_gateway()
 			$this->ordernumber_prefix = $this->get_option('ordernumber_prefix');
 			$this->description = $this->get_option('description');
 
-			add_action('init', array(&$this, 'check_maksukaista_response'));
-			add_action('init', array(&$this, 'maksukaista_settle_payment'));
 			add_action('woocommerce_update_options_payment_gateways_' . $this->id, array($this, 'process_admin_options' ) );
-	        add_action('woocommerce_api_wc_gateway_maksukaista', array(&$this, 'check_maksukaista_response' ) );
-			add_action('woocommerce_receipt_maksukaista', array(&$this, 'receipt_page'));
-			add_action('woocommerce_admin_order_data_after_order_details', array(&$this, 'maksukaista_settle_payment'));
+			add_action('woocommerce_api_wc_gateway_maksukaista', array($this, 'check_maksukaista_response' ) );
+			add_action('woocommerce_receipt_maksukaista', array($this, 'receipt_page'));
+			add_action('woocommerce_admin_order_data_after_billing_address', array($this, 'maksukaista_settle_payment'), 1, 1);
 			
 			if(!$this->is_valid_currency()) 
 				$this->enabled = false;
@@ -144,7 +123,17 @@ function init_maksukaista_gateway()
 
 			$order = new WC_Order($order_id);
 
-			$redirect_url = (get_option('woocommerce_thanks_page_id') != '' ) ? get_permalink(get_option('woocommerce_thanks_page_id')): get_site_url().'/' ;
+			if (version_compare(WOOCOMMERCE_VERSION, '2.1.0', '>=')) 
+			{
+				// >= 2.1.0
+				$redirect_url = $this->get_return_url($this->order);
+			} 
+			else 
+			{
+				// < 2.1.0
+				$redirect_url = (get_option('woocommerce_thanks_page_id') != '' ) ? get_permalink(get_option('woocommerce_thanks_page_id')): get_site_url().'/' ;
+			}
+			
 			$return_url = add_query_arg( array('wc-api' => get_class( $this ) ,'order_id' => $order_id), $redirect_url );
 
 			$amount =  str_replace(',', '', number_format($order->order_total, 2)) * 100;
@@ -195,18 +184,26 @@ function init_maksukaista_gateway()
 		function process_payment($order_id)
 		{
 			$order = new WC_Order($order_id);
+			
+			if (version_compare(WOOCOMMERCE_VERSION, '2.1.0', '>=')) 
+			{
+				$redirect = add_query_arg('order', $order->id, add_query_arg('key', $order->order_key, get_permalink(woocommerce_get_page_id('pay'))));
+			}
+			else
+			{
+				$redirect = add_query_arg('order', $order->id, add_query_arg('key', $order->order_key, get_permalink(get_option('woocommerce_pay_page_id'))));
+			}
 
 			return array(
 				'result'   => 'success',
-				'redirect'  => add_query_arg('order',
-				$order->id, 
-				add_query_arg('key', $order->order_key, get_permalink(get_option('woocommerce_pay_page_id'))))
+				'redirect'  => $redirect
 			);
 		}
 
 		function get_order_by_id_and_order_number($order_id, $order_number)
 		{
-			if(($order = New WC_Order($order_id)) && ($order_number == $order->order_custom_fields['maksukaista_order_number'][0]))
+			$order = New WC_Order($order_id);
+			if($order_number == get_post_meta( $order->id, 'maksukaista_order_number', true ))
 				return $order;
 
 			return null;
@@ -226,7 +223,7 @@ function init_maksukaista_gateway()
 
 				$authcode_confirm = $this->private_key .'|'. $return_code .'|'. $order_number;
 
-				if("$return_code" === "0")
+				if($return_code === "0")
 				{
 					$authcode_confirm .=  '|'. $settled;
 				}
@@ -302,8 +299,8 @@ function init_maksukaista_gateway()
 		function maksukaista_settle_payment($order)
 		{
 			global $woocommerce;
-			
-			$settle_check = isset($order->order_custom_fields['maksukaista_is_settled'][0]) && $order->order_custom_fields['maksukaista_is_settled'][0] == "0";
+			$settle_field = get_post_meta( $order->id, 'maksukaista_is_settled', true );
+			$settle_check = empty($settle_field) && $settle_field == "0";
 			if(!$settle_check)
 				return;
 
@@ -311,7 +308,7 @@ function init_maksukaista_gateway()
 
 			if(isset($_GET['maksukaista_settle']))
 			{
-				$order_number = $order->order_custom_fields['maksukaista_order_number'][0];
+				$order_number = get_post_meta( $order->id, 'maksukaista_order_number', true );
 				$settlement_msg = '';
 
 				if($this->process_settlement($order_number, $settlement_msg))
@@ -325,8 +322,13 @@ function init_maksukaista_gateway()
 					$settlement_result = '0';
 				}
 
-				$redirect_url = add_query_arg(array('settlement_msg' => urlencode($settlement_msg), 'settlement_result' => $settlement_result), $url);
-				wp_safe_redirect($redirect_url);
+				if(!$settlement_result)
+					echo '<div id="message" class="error">'.$settlement_msg.' <p class="form-field"><a href="'.$url.'" class="button button-primary">OK</a></p></div>';
+				else
+				{
+					echo '<div id="message" class="updated fade">'.$settlement_msg.' <p class="form-field"><a href="'.$url.'" class="button button-primary">OK</a></p></div>';
+					return;
+				}
 			}
 
 
