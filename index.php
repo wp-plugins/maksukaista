@@ -3,7 +3,7 @@
 Plugin Name: Maksukaista Payment Gateway
 Plugin URI: http://www.maksukaista.fi
 Description: Maksukaista Payment Gateway Integration for Woocommerce
-Version: 1.1
+Version: 2.0
 Author: Paybyway Oy
 Author URI: http://www.maksukaista.fi
 */
@@ -19,7 +19,7 @@ add_filter('woocommerce_payment_gateways', 'woocommerce_add_WC_Gateway_Maksukais
 function init_maksukaista_gateway()
 {
 	load_plugin_textdomain('maksukaista', false, dirname(plugin_basename(__FILE__)));
-	
+
 	if(!class_exists('WC_Payment_Gateway'))
 		return;
 
@@ -38,26 +38,34 @@ function init_maksukaista_gateway()
 			$this->enabled = $this->settings['enabled'];
 			$this->title = $this->get_option('title');
 			$this->merchant_id = $this->get_option('merchant_id');
+
 			$this->private_key = $this->get_option('private_key');
 			$this->pay_url = $this->get_option('pay_url');
 			$this->settle_url = $this->get_option('settle_url');
 			$this->ordernumber_prefix = $this->get_option('ordernumber_prefix');
 			$this->description = $this->get_option('description');
 
+			$this->banks = $this->get_option('banks');
+			$this->ccards = $this->get_option('ccards');
+			$this->cinvoices = $this->get_option('cinvoices');
+			$this->arvato = $this->get_option('arvato');
+
+			$this->send_items = $this->get_option('send_items');
+
 			add_action('woocommerce_update_options_payment_gateways_' . $this->id, array($this, 'process_admin_options' ) );
 			add_action('woocommerce_api_wc_gateway_maksukaista', array($this, 'check_maksukaista_response' ) );
 			add_action('woocommerce_receipt_maksukaista', array($this, 'receipt_page'));
 			add_action('woocommerce_admin_order_data_after_billing_address', array($this, 'maksukaista_settle_payment'), 1, 1);
-			
-			if(!$this->is_valid_currency()) 
+
+			if(!$this->is_valid_currency())
 				$this->enabled = false;
 		}
 
-		function is_valid_currency() 
+		function is_valid_currency()
 		{
 			return in_array(get_option('woocommerce_currency'), array('EUR'));
 		}
-		
+
 		function init_form_fields()
 		{
 			$this->form_fields = array(
@@ -108,73 +116,221 @@ function init_maksukaista_gateway()
 					'description' => __( 'URL used to settle previously authorized credit card payments. Only change this if you want to use the test interface.', 'maksukaista' ),
 					'default' => 'https://www.paybyway.com/pbwapi/settle'
 				),
+				'banks' => array(
+					'title' => __( 'Payment methods', 'maksukaista' ),
+					'type' => 'checkbox',
+					'label' => __( 'Enable bank payments in the Maksukaista payment page.', 'maksukaista' ),
+					'default' => 'yes'
+				),
+				'ccards' => array(
+					'type' => 'checkbox',
+					'label' => __( 'Enable credit cards in the Maksukaista payment page.', 'maksukaista' ),
+					'default' => 'yes'
+				),
+				'cinvoices' => array(
+					'type' => 'checkbox',
+					'label' => __( 'Enable credit invoices in the Maksukaista payment page.', 'maksukaista' ),
+					'default' => 'yes'
+				),
+				'arvato' => array(
+					'type' => 'checkbox',
+					'label' => __( 'Enable Maksukaista Lasku in the Maksukaista payment page. (Only for Maksukaista Konversio customers)', 'maksukaista' ),
+					'default' => 'no'
+				),
+				'send_items' => array(
+					'title' => __( 'Send products', 'maksukaista' ),
+					'type' => 'checkbox',
+					'label' => __( "Send product breakdown to Maksukaista. \n(Supported on default Woocommerce installation.)", 'maksukaista' ),
+					'default' => 'yes'
+				),
 			);
 		}
 
-		function payment_fields()	
+		function payment_fields()
 		{
-			if ($this->description) 
+			if ($this->description)
 				echo wpautop(wptexturize($this->description));
 		}
 
 		function receipt_page($order_id)
-		{		
+		{
 			global $woocommerce;
 
 			$order = new WC_Order($order_id);
 
-			if (version_compare(WOOCOMMERCE_VERSION, '2.1.0', '>=')) 
+			if (version_compare(WOOCOMMERCE_VERSION, '2.1.0', '>='))
 			{
 				// >= 2.1.0
 				$redirect_url = $this->get_return_url($this->order);
-			} 
-			else 
+			}
+			else
 			{
 				// < 2.1.0
 				$redirect_url = (get_option('woocommerce_thanks_page_id') != '' ) ? get_permalink(get_option('woocommerce_thanks_page_id')): get_site_url().'/' ;
 			}
-			
-			$return_url = add_query_arg( array('wc-api' => get_class( $this ) ,'order_id' => $order_id), $redirect_url );
 
-			$amount =  str_replace(',', '', number_format($order->order_total, 2)) * 100;
+			$return_url = add_query_arg( array('wc-api' => get_class( $this ) ,'order_id' => $order_id), $redirect_url );
+			$notify_url = $return_url;
+
+			$mk_selected = "";
+			if($this->banks == 'yes')
+				$mk_selected .= 'BANKS';
+			if($this->ccards == 'yes')
+				$mk_selected .= ',CREDITCARDS';
+			if($this->cinvoices == 'yes')
+				$mk_selected .= ',CREDITINVOICES';
+			if($this->arvato == 'yes')
+				$mk_selected .= ',ARVATO';
+
+			$email = $order->billing_email;
+			$contact_id_post = "";
+			$contact_firstname = $order->billing_first_name;
+			$contact_lastname = $order->billing_last_name;
+			$contact_ssn = '';
+			$contact_email = $order->billing_email;
+			$contact_addr_street = $order->billing_address_1.' '.$order->billing_address_2;
+			$contact_addr_city = $order->billing_city;
+			$contact_addr_zip = $order->billing_postcode;
+
+			$amount =  (int)(round($order->order_total*100, 0));
 			$currency = get_woocommerce_currency();
+
 			$order_number = (strlen($this->ordernumber_prefix)  > 0) ?  $this->get_option('ordernumber_prefix') . '_'  .$order_id : $order_id;
 			$order_number .=  '-' . str_pad(time().rand(0,9999), 5, "1", STR_PAD_RIGHT);
-
-			$order_number_text = 'Maksukaista ' . __('order number', 'maksukaista');
+			$order_number_text =  __('CREATED: ', 'maksukaista').'Maksukaista ' . __('order number', 'maksukaista');
 			$order->add_order_note("$order_number_text: $order_number");
 			update_post_meta($order_id, 'maksukaista_order_number', $order_number);
 			update_post_meta($order_id, 'maksukaista_is_settled', 1);
-			
+
 			$finn_langs = array('fi-FI', 'fi', 'fi_FI');
 			$lang = in_array(get_bloginfo('language'), $finn_langs) ? 'FI' : 'EN';
 
+			$products = array();
+			$order_items = $order->get_items();
+			foreach($order_items as $item) {
+				$product = array(
+					'ITEM_TITLE' => $item['name'],
+					'ITEM_NO' => $item['product_id'],
+					'ITEM_COUNT' => $item['qty'],
+					'ITEM_PRETAX_PRICE' => (int)(round(($item['line_total']/$item['qty'])*100, 0)),
+					'ITEM_PRICE' => (int)(round((($item['line_total'] + $item['line_tax'] ) / $item['qty'])*100, 0)),
+					'ITEM_TAX' => round($item['line_tax']/$item['line_total']*100,0),
+					'ITEM_TYPE' => 1
+				);
+				array_push($products, $product);
+		 	}
+
+		 	//Shipping costs as item_type 2
+		 	$shipping_items = $order->get_items( 'shipping' );
+		 	foreach($shipping_items as $s_method){
+				$shipping_method_id = $s_method['method_id'] ;
+			}
+		 	if($order->order_shipping > 0){
+			 	$product = array(
+					'ITEM_TITLE' => $order->get_shipping_method(),
+					'ITEM_NO' => $shipping_method_id,
+					'ITEM_COUNT' => 1,
+					'ITEM_PRETAX_PRICE' => (int)(round($order->order_shipping*100, 0)),
+					'ITEM_PRICE' => (int)(round(($order->order_shipping_tax+$order->order_shipping)*100, 0)),
+					'ITEM_TAX' => round($order->order_shipping_tax/$order->order_shipping*100,0),
+					'ITEM_TYPE' => 2
+				);
+				array_push($products, $product);
+			}
+
+			if($order->get_order_discount() > 0){
+			 	$product = array(
+					'ITEM_TITLE' => __( 'Order discount', 'maksukaista' ),
+					'ITEM_NO' => '',
+					'ITEM_COUNT' => 1,
+					'ITEM_PRETAX_PRICE' => -(int)(round($order->order_discount*100, 0)),
+					'ITEM_PRICE' => -(int)(round($order->order_discount*100, 0)),
+					'ITEM_TAX' => '0',
+					'ITEM_TYPE' => 4
+				);
+				array_push($products, $product);
+			}
+
+		 	if(count($products) > 0 && $this->send_items == 'yes')
+				$items = count($products);
+			else
+				$items = '';
+
+			$authcode =
+				'2.1|'.
+				$this->merchant_id.'|'.
+				$amount.'|'.
+				$currency.'|'.
+				$order_number.'|'.
+				$lang.'|'.
+				$return_url.'|'.
+				$return_url.'|'.
+				$notify_url.'|'.
+				$mk_selected.'|'.
+				$email.'|'.
+				$contact_id_post.'|'.
+				$contact_firstname.'|'.
+				$contact_lastname.'|'.
+				$contact_ssn.'|'.
+				$contact_email.'|'.
+				$contact_addr_street.'|'.
+				$contact_addr_city.'|'.
+				$contact_addr_zip.'|'.
+				$items;
+			if($items != ''){
+				foreach ($products as $product) {
+					$authcode .=
+					'|' . $product['ITEM_TITLE'] .
+					'|' . $product['ITEM_NO'] .
+					'|' . $product['ITEM_COUNT'] .
+					'|' . $product['ITEM_PRETAX_PRICE'] .
+					'|' . $product['ITEM_PRICE'] .
+					'|' . $product['ITEM_TAX'] .
+					'|' . $product['ITEM_TYPE'];
+				}
+			}
+
+			$authcode = strtoupper(hash_hmac('sha256', $authcode, $this->private_key));
+
 			$data = array(
+				'VERSION' => '2.1',
 				'MERCHANT_ID' => $this->merchant_id,
 				'AMOUNT' => $amount,
 				'CURRENCY' => $currency,
 				'ORDER_NUMBER' => $order_number,
 				'LANG' => $lang,
 				'RETURN_ADDRESS' => $return_url,
-				'CANCEL_ADDRESS' => $return_url
+				'CANCEL_ADDRESS' => $return_url,
+				'NOTIFY_ADDRESS' => $notify_url,
+				'SELECTED' => $mk_selected,
+				'EMAIL' => $email,
+				'CONTACT_FIRSTNAME' => $contact_firstname,
+				'CONTACT_LASTNAME' => $contact_lastname,
+				'CONTACT_SSN' => $contact_ssn,
+				'CONTACT_EMAIL' => $contact_email,
+				'CONTACT_ADDR_STREET' => $contact_addr_street,
+				'CONTACT_ADDR_CITY' => $contact_addr_city,
+				'CONTACT_ADDR_ZIP' => $contact_addr_zip,
+				'CONTACT_ID' => $contact_id_post,
+				'ITEMS' => $items,
+				'AUTHCODE' => $authcode
 			);
 
-			$mac = 
-				$this->private_key . '|' .
-				$data['MERCHANT_ID'] . '|' .
-				$data['AMOUNT'] . '|' .
-				$data['CURRENCY'] . '|' .
-				$data['ORDER_NUMBER'] . '|' .
-				$data['LANG'] . '|' .
-				$data['RETURN_ADDRESS'] . '|' .
-				$data['CANCEL_ADDRESS'];
-
-			$data['AUTHCODE'] = strtoupper(md5($mac));
-
-			$html = '<form action=' . $this->pay_url . ' name="maksukaista_pay_form" method="POST">';
+			if($this->arvato == 'yes')
+				$html = '<form action="' . $this->pay_url . '?arvato" name="maksukaista_pay_form" method="POST">';
+			else
+				$html = '<form action="' . $this->pay_url . '" name="maksukaista_pay_form" method="POST">';
 
 			foreach ($data as $key => $value)
 				$html .= "<input type='hidden' name='$key' value='$value' />";
+
+			if($items != ""){
+				foreach ($products as $product) {
+					foreach ($product as $key => $value) {
+						$html .= '<input name="'. $key. '[]" value="' . $value. '"  type="hidden" />';
+					}
+				}
+			}
 
 			$html .='</form>';
 			$html .= '<script>document.maksukaista_pay_form.submit();</script>';
@@ -183,17 +339,12 @@ function init_maksukaista_gateway()
 
 		function process_payment($order_id)
 		{
-			$order = new WC_Order($order_id);
-			
-			if (version_compare(WOOCOMMERCE_VERSION, '2.1.0', '>=')) 
-			{
-				$redirect = add_query_arg('order', $order->id, add_query_arg('key', $order->order_key, get_permalink(woocommerce_get_page_id('pay'))));
-			}
-			else
-			{
-				$redirect = add_query_arg('order', $order->id, add_query_arg('key', $order->order_key, get_permalink(get_option('woocommerce_pay_page_id'))));
-			}
+			global $woocommerce;
 
+			$order = new WC_Order($order_id);
+			$redirect = $order->get_checkout_payment_url(true);
+			//Empty cart when redirecting to Maksukaista, so new orders won't override this order.
+			$woocommerce->cart->empty_cart();
 			return array(
 				'result'   => 'success',
 				'redirect'  => $redirect
@@ -219,23 +370,26 @@ function init_maksukaista_gateway()
 				$incident_id = isset($_POST['INCIDENT_ID']) ? $_POST['INCIDENT_ID'] : null;
 				$settled = isset($_POST['SETTLED']) ? $_POST['SETTLED'] : null;
 				$authcode = isset($_POST['AUTHCODE']) ? $_POST['AUTHCODE'] : null;
+				$contact_id = isset($_POST['CONTACT_ID']) ? $_POST['CONTACT_ID'] : null;
 				$order_number = isset($_POST['ORDER_NUMBER']) ? $_POST['ORDER_NUMBER'] : null;
 
-				$authcode_confirm = $this->private_key .'|'. $return_code .'|'. $order_number;
+				$authcode_confirm = $return_code .'|'. $order_number;
 
-				if($return_code === "0")
-				{
-					$authcode_confirm .=  '|'. $settled;
+				if(isset($return_code) && $return_code == 0){
+					$authcode_confirm .= '|' . $settled;
+					if(isset($contact_id) && !empty($contact_id)){
+						$authcode_confirm .= '|' . $contact_id;
+					}
 				}
-				else if(isset($incident_id) && !empty($incident_id))
-				{
-					$authcode_confirm .=  '|'. $incident_id;
+				else if(isset($incident_id) && !empty($incident_id)){
+					$authcode_confirm .= '|' . $incident_id;
 				}
 
-				$authcode_confirm = strtoupper(md5($authcode_confirm));
+				$authcode_confirm = strtoupper(hash_hmac('sha256', $authcode_confirm, $this->private_key));
 
 				$order_id = isset($_GET['order_id']) ? $_GET['order_id'] : null;
 				$order = $this->get_order_by_id_and_order_number($order_id, $order_number);
+				$mk_on = get_post_meta($order_id, 'maksukaista_order_number', true );
 
 				if($authcode_confirm === $authcode && $order)
 				{
@@ -246,43 +400,49 @@ function init_maksukaista_gateway()
 							{
 								$is_settled = 0;
 								update_post_meta($order_id, 'maksukaista_is_settled', $is_settled);
-								$order->add_order_note(__('Payment is authorized. Use settle option to capture funds.', 'maksukaista'));
+								if($order->status != 'processing')
+									$order->add_order_note( __('Maksukaista: ', 'maksukaista').$mk_on."\n".__('Payment is authorized. Use settle option to capture funds.', 'maksukaista'));
+
 							}
 							else
 							{
-								$order->add_order_note(__('Payment accepted.', 'maksukaista'));
+								if($order->status != 'processing')
+									$order->add_order_note(__('Maksukaista: ', 'maksukaista').$mk_on."\n".__('Payment accepted.', 'maksukaista'));
 							}
-
 							$order->payment_complete();
 							$woocommerce->cart->empty_cart();
 							break;
 
 						case 1:
-							$order->update_status('failed', __('Payment was not accepted.', 'maksukaista'));
+							if($order->status != 'processing')
+								$order->update_status('failed', __('Payment was not accepted.', 'maksukaista'));
 							break;
 
 						case 2:
-							$order->update_status('failed', __('Duplicate order number.', 'maksukaista'));
+							if($order->status != 'processing')
+								$order->update_status('failed', __('Duplicate order number.', 'maksukaista'));
 							break;
 
 						case 3:
-							$note = __('User disabled. Either your Paybyway account has been temporarily disabled for security reasons, 
-								or your sub-merchant is disabled. Visit merchant UI to verify that the sub-merchant is active and that your 
+							$note = __('User disabled. Either your Paybyway account has been temporarily disabled for security reasons,
+								or your sub-merchant is disabled. Visit merchant UI to verify that the sub-merchant is active and that your
 								Paybyway account has not been disabled. If account is disabled, contact support for assistance.', 'maksukaista');
-
-							$order->update_status('failed', $note);
+							if($order->status != 'processing')
+								$order->update_status('failed', $note);
 							break;
 
 						case 4:
-							$note = __('Transaction status could not be updated after customer returned from the 
+							$note = __('Transaction status could not be updated after customer returned from the
 								web page of a bank. Please use the merchant UI to resolve the payment status.', 'maksukaista');
-							$order->update_status('failed', $note);
+							if($order->status != 'processing')
+								$order->update_status('failed', $note);
 							break;
 
 						case 10:
-							$note = __('Maintenance break. The transaction is not created and the user has been 
+							$note = __('Maintenance break. The transaction is not created and the user has been
 							notified and transferred back to the cancel address.', 'maksukaista');
-							$order->update_status('failed', $note);
+							if($order->status != 'processing')
+								$order->update_status('failed', $note);
 							break;
 					}
 				}
@@ -292,7 +452,7 @@ function init_maksukaista_gateway()
 				}
 
 				wp_redirect($this->get_return_url($order));
-				exit;
+				exit('Ok');
 			}
 		}
 
@@ -354,10 +514,9 @@ function init_maksukaista_gateway()
 
 			$ch = curl_init();
 			curl_setopt($ch, CURLOPT_URL, $this->settle_url);
-			curl_setopt($ch, CURLOPT_POST, 1); 
-			curl_setopt($ch, CURLOPT_HEADER, 0); 
+			curl_setopt($ch, CURLOPT_POST, 1);
+			curl_setopt($ch, CURLOPT_HEADER, 0);
 			curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-			curl_setopt($ch, CURLOPT_SSLVERSION, 3);
 			curl_setopt($ch, CURLOPT_HTTPHEADER, array($ctype));
 			curl_setopt($ch, CURLOPT_POSTFIELDS, $posts);
 
@@ -374,7 +533,7 @@ function init_maksukaista_gateway()
 			{
 				$return_code = isset($settlement->RETURN_CODE) ? $settlement->RETURN_CODE : -999;
 
-				switch ($return_code) 
+				switch ($return_code)
 				{
 					case 0:
 						$successful = true;
@@ -386,7 +545,7 @@ function init_maksukaista_gateway()
 						break;
 
 					case 2:
-						$settlement_msg = __('Settlement failed. Either the payment has already been settled or the payment gateway refused to settle payment for given transaction.', 'maksukaista');           
+						$settlement_msg = __('Settlement failed. Either the payment has already been settled or the payment gateway refused to settle payment for given transaction.', 'maksukaista');
 						break;
 
 					case 3:
@@ -396,7 +555,7 @@ function init_maksukaista_gateway()
 					default:
 						$settlement_msg = __('Settlement failed. Unkown error.', 'maksukaista');
 						break;
-				}        
+				}
 			}
 			else
 			{
