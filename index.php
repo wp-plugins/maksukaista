@@ -209,7 +209,7 @@ function init_maksukaista_gateway()
 			$order_items = $order->get_items();
 			foreach($order_items as $item) {
 				$product = array(
-					'ITEM_TITLE' => $item['name'],
+					'ITEM_TITLE' => str_replace(array('\'', '"'), '', $item['name']),
 					'ITEM_NO' => $item['product_id'],
 					'ITEM_COUNT' => $item['qty'],
 					'ITEM_PRETAX_PRICE' => (int)(round(($item['line_total']/$item['qty'])*100, 0)),
@@ -227,7 +227,7 @@ function init_maksukaista_gateway()
 			}
 		 	if($order->order_shipping > 0){
 			 	$product = array(
-					'ITEM_TITLE' => $order->get_shipping_method(),
+					'ITEM_TITLE' => str_replace(array('\'', '"'), '', $order->get_shipping_method()),
 					'ITEM_NO' => $shipping_method_id,
 					'ITEM_COUNT' => 1,
 					'ITEM_PRETAX_PRICE' => (int)(round($order->order_shipping*100, 0)),
@@ -327,7 +327,7 @@ function init_maksukaista_gateway()
 			if($items != ""){
 				foreach ($products as $product) {
 					foreach ($product as $key => $value) {
-						$html .= '<input name="'. $key. '[]" value="' . $value. '"  type="hidden" />';
+						$html .= "<input name='".$key."[]' value='$value'  type='hidden' />";
 					}
 				}
 			}
