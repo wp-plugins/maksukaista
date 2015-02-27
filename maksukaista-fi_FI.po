@@ -1,9 +1,9 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: Maksukaista Payment Gateway v2.0\n"
+"Project-Id-Version: Maksukaista Payment Gateway v2.1\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: \n"
-"PO-Revision-Date: 2015-02-06 13:18:47+0000\n"
+"PO-Revision-Date: 2015-02-27 09:50:38+0000\n"
 "Last-Translator: maksukaista <asiakaspalvelu@maksukaista.fi>\n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
@@ -20,193 +20,188 @@ msgstr ""
 "X-Poedit-SearchPath-0: .\n"
 "X-Textdomain-Support: yes"
 
-#: index.php:83
+#: index.php:73
 #@ maksukaista
 msgid "Enable/Disable"
 msgstr "Ota käyttöön/Ota pois käytöstä"
 
-#: index.php:85
+#: index.php:75
 #@ maksukaista
 msgid "Enable Maksukaista"
 msgstr "Ota Maksukaista käyttöön"
 
-#: index.php:89
+#: index.php:79
 #@ maksukaista
 msgid "Title"
 msgstr "Otsikko"
 
-#: index.php:91
+#: index.php:81
 #@ maksukaista
 msgid "This controls the title which the user sees during checkout."
 msgstr "Kirjoita tähän tieto, josta käyttäjä tunnistaa maksutavan."
 
-#: index.php:92
+#: index.php:82
 #@ maksukaista
 msgid "Maksukaista"
 msgstr "Maksukaista"
 
-#: index.php:95
+#: index.php:85
 #@ maksukaista
 msgid "Customer Message"
 msgstr "Asiakkaalle näytettävä viesti koskien maksutapaa"
 
-#: index.php:100
+#: index.php:90
 #@ maksukaista
 msgid "Sub-merchant id"
 msgstr "Alikauppiastunnus"
 
-#: index.php:102
+#: index.php:92
 #@ maksukaista
 msgid "Your sub-merchant id found in Maksukaista merchant portal"
 msgstr "Kauppiasportaalista löytyvä alikauppiastunnus"
 
-#: index.php:106
+#: index.php:96
 #@ maksukaista
 msgid "Private key"
 msgstr "Salausavain"
 
-#: index.php:108
+#: index.php:98
 #@ maksukaista
 msgid "Private key of the the sub-merchant"
 msgstr "Alikauppiaan salausavain"
 
-#: index.php:112
+#: index.php:102
 #@ maksukaista
 msgid "Order number prefix"
 msgstr "Tilausnumeron etuliite"
 
-#: index.php:114
+#: index.php:104
 #@ maksukaista
 msgid "Prefix to avoid order number duplication"
 msgstr "Etuliitteellä vältetään samanlaisten tilaustunnusten luonti, jos käytössä on useampi verkkokauppa"
 
-#: index.php:118
+#: index.php:108
 #@ maksukaista
 msgid "Payment URL"
 msgstr "Maksuosoite"
 
-#: index.php:124
+#: index.php:114
 #@ maksukaista
 msgid "Settle URL"
 msgstr "Veloitusosoite"
 
-#: index.php:421
+#: index.php:403
 #@ maksukaista
 msgid "Payment is authorized. Use settle option to capture funds."
 msgstr "Maksu varmennettu. Maksu veloitetaan painamalla Veloita maksu -painiketta."
 
-#: index.php:427
+#: index.php:409
 #@ maksukaista
 msgid "Payment accepted."
 msgstr "Maksu hyväksystty."
 
-#: index.php:438
+#: index.php:417
 #@ maksukaista
 msgid "Payment was not accepted."
 msgstr "Maksu epäonnistui."
 
-#: index.php:443
+#: index.php:422
 #@ maksukaista
 msgid "Duplicate order number."
 msgstr "Duplikaatti tilausnumero."
 
-#: index.php:497
+#: index.php:476
 #@ maksukaista
 msgid "Payment settled."
 msgstr "Maksu veloitettu."
 
-#: index.php:515
+#: index.php:494
 #@ maksukaista
 msgid "Settle payment"
 msgstr "Veloita maksu"
 
-#: index.php:560
+#: index.php:539
 #@ maksukaista
 msgid "Settlement was successful."
 msgstr "Veloitus onnistui."
 
-#: index.php:564
+#: index.php:543
 #@ maksukaista
 msgid "Settlement failed. Private key and merchant id did not match with order number."
 msgstr "Veloitus pyyntö epäonnistui. Salausavain tai alikauppiastunnus eivät sopineet tilausnumeroon."
 
-#: index.php:568
+#: index.php:547
 #@ maksukaista
 msgid "Settlement failed. Either the payment has already been settled or the payment gateway refused to settle payment for given transaction."
 msgstr "Maksua ei voitu veloittaa. Joko maksu on jo veloitettu, tai luottolaitos hylkäsi veloituspyynnön."
 
-#: index.php:572
+#: index.php:551
 #@ maksukaista
 msgid "Settlement failed. The settlement request did not contain all the needed fields"
 msgstr "Odottamaton virhe veloitusta tehdessä."
 
-#: index.php:576
+#: index.php:555
 #@ maksukaista
 msgid "Settlement failed. Unkown error."
 msgstr "Tuntematon paluuarvo. Mikäli ongelma toistuu, ota yhteyttä asiakaspalveluumme."
 
-#: index.php:582
+#: index.php:561
 #@ maksukaista
 msgid "Settlement failed. Failed to parse JSON response."
 msgstr "Vastauksen (JSON) parsinta epäonnistui."
 
-#: index.php:120
+#: index.php:110
 #@ maksukaista
 msgid "URL of the Maksukaista payment page. Only change this if you want to use the test interface."
 msgstr "Maksusivun osoite. Vaihda vain, jos haluat käyttää testirajapintaa."
 
-#: index.php:126
+#: index.php:116
 #@ maksukaista
 msgid "URL used to settle previously authorized credit card payments. Only change this if you want to use the test interface."
 msgstr "Veloitusrajapinnan osoite. Vaihda vain, jos haluat käyttää testirajapintaa."
 
-#: index.php:210
+#: index.php:199
 #@ maksukaista
 msgid "order number"
 msgstr "tilaustunnus"
 
-#: index.php:130
+#: index.php:120
 #@ maksukaista
 msgid "Payment methods"
 msgstr "Maksutavat"
 
-#: index.php:132
+#: index.php:122
 #@ maksukaista
 msgid "Enable bank payments in the Maksukaista payment page."
 msgstr "Ota käyttöön verkkopankkipainikkeet maksusivulla."
 
-#: index.php:137
+#: index.php:127
 #@ maksukaista
 msgid "Enable credit cards in the Maksukaista payment page."
 msgstr "Ota käyttöön luottokorttipainikkeet maksusivulla."
 
-#: index.php:142
+#: index.php:132
 #@ maksukaista
 msgid "Enable credit invoices in the Maksukaista payment page."
 msgstr "Ota käyttöön luottolaskupainikkeet maksusivulla."
 
-#: index.php:210
+#: index.php:199
 #@ maksukaista
 msgid "CREATED: "
 msgstr "LUOTU: "
 
-#: index.php:258
+#: index.php:242
 #@ maksukaista
 msgid "Order discount"
 msgstr "Tilauksen alennukset"
 
-#: index.php:353
-#@ maksukaista
-msgid "Waiting for response from Maksukaista."
-msgstr "Odottaa vahvistusta Maksukaistalta"
-
-#: index.php:421
-#: index.php:427
+#: index.php:403
+#: index.php:409
 #@ maksukaista
 msgid "Maksukaista: "
 msgstr "Maksukaista: "
 
-#: index.php:447
+#: index.php:426
 #@ maksukaista
 msgid ""
 "User disabled. Either your Paybyway account has been temporarily disabled for security reasons,\n"
@@ -214,31 +209,31 @@ msgid ""
 "\t\t\t\t\t\t\t\tPaybyway account has not been disabled. If account is disabled, contact support for assistance."
 msgstr "Käyttäjätunnuksenne on lukittu joko turvallisuussyistä, tai alikauppiaanne on poistettu käytöstä. Tarkista Maksukaistan hallintapaneelista ettei alikauppiasta tai kauppiastiliänne ole lukittu. Jos tilinne on lukittu, ota yhteyttä asiakaspalveluumme."
 
-#: index.php:455
+#: index.php:434
 #@ maksukaista
 msgid ""
 "Transaction status could not be updated after customer returned from the\n"
 "\t\t\t\t\t\t\t\tweb page of a bank. Please use the merchant UI to resolve the payment status."
 msgstr "Maksun tilaa ei voitu varmentaa asiakkaan palattua palveluumme verkkopankista. Käytä hallintapaneelia selvittääksesi maksun tilan."
 
-#: index.php:462
+#: index.php:441
 #@ maksukaista
 msgid ""
 "Maintenance break. The transaction is not created and the user has been\n"
 "\t\t\t\t\t\t\tnotified and transferred back to the cancel address."
 msgstr "Huoltotauko. Maksua ei luotu, ja asiakaalle on ilmoitettu asiasta."
 
-#: index.php:151
+#: index.php:141
 #@ maksukaista
 msgid "Send products"
 msgstr "Lähetä tuote-erittely Maksukaista-portaaliin"
 
-#: index.php:147
+#: index.php:137
 #@ maksukaista
 msgid "Enable Maksukaista Lasku in the Maksukaista payment page. (Only for Maksukaista Konversio customers)"
 msgstr "Ota käyttöön Maksukaista Lasku maksusivulla. (Vain Maksukaista Konversio -asiakkaille)"
 
-#: index.php:153
+#: index.php:143
 #@ maksukaista
 msgid ""
 "Send product breakdown to Maksukaista. \n"

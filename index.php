@@ -3,7 +3,7 @@
 Plugin Name: Maksukaista Payment Gateway
 Plugin URI: http://www.maksukaista.fi
 Description: Maksukaista Payment Gateway Integration for Woocommerce
-Version: 2.0
+Version: 2.1
 Author: Paybyway Oy
 Author URI: http://www.maksukaista.fi
 */
@@ -72,7 +72,7 @@ function init_maksukaista_gateway()
 				'enabled' => array(
 					'title' => __( 'Enable/Disable', 'maksukaista' ),
 					'type' => 'checkbox',
-					'label' => __( 'Enable Maksukaista', 'maksukaista' ),
+					'label' => __( 'Enable Maksukaista', 'maksukaista' ),					
 					'default' => 'yes'
 				),
 				'title' => array(
@@ -89,7 +89,7 @@ function init_maksukaista_gateway()
 				'merchant_id' => array(
 					'title' => __( 'Sub-merchant id', 'maksukaista' ),
 					'type' => 'text',
-					'description' => __( 'Your sub-merchant id found in Maksukaista merchant portal', 'maksukaista' ),
+					'description' => __( "Your sub-merchant id found in Maksukaista merchant portal", 'maksukaista' ),
 					'default' => ''
 				),
 				'private_key' => array(
@@ -161,7 +161,7 @@ function init_maksukaista_gateway()
 			if (version_compare(WOOCOMMERCE_VERSION, '2.1.0', '>='))
 			{
 				// >= 2.1.0
-				$redirect_url = $this->get_return_url($this->order);
+				$redirect_url = $this->get_return_url($order);
 			}
 			else
 			{
@@ -170,7 +170,6 @@ function init_maksukaista_gateway()
 			}
 
 			$return_url = add_query_arg( array('wc-api' => get_class( $this ) ,'order_id' => $order_id), $redirect_url );
-			$notify_url = $return_url;
 
 			$mk_selected = "";
 			if($this->banks == 'yes')
@@ -209,7 +208,7 @@ function init_maksukaista_gateway()
 			$order_items = $order->get_items();
 			foreach($order_items as $item) {
 				$product = array(
-					'ITEM_TITLE' => str_replace(array('\'', '"'), '', $item['name']),
+					'ITEM_TITLE' => $item['name'],
 					'ITEM_NO' => $item['product_id'],
 					'ITEM_COUNT' => $item['qty'],
 					'ITEM_PRETAX_PRICE' => (int)(round(($item['line_total']/$item['qty'])*100, 0)),
@@ -227,7 +226,7 @@ function init_maksukaista_gateway()
 			}
 		 	if($order->order_shipping > 0){
 			 	$product = array(
-					'ITEM_TITLE' => str_replace(array('\'', '"'), '', $order->get_shipping_method()),
+					'ITEM_TITLE' => $order->get_shipping_method(),
 					'ITEM_NO' => $shipping_method_id,
 					'ITEM_COUNT' => 1,
 					'ITEM_PRETAX_PRICE' => (int)(round($order->order_shipping*100, 0)),
@@ -238,7 +237,7 @@ function init_maksukaista_gateway()
 				array_push($products, $product);
 			}
 
-			if($order->get_order_discount() > 0){
+			if($order->order_discount > 0){
 			 	$product = array(
 					'ITEM_TITLE' => __( 'Order discount', 'maksukaista' ),
 					'ITEM_NO' => '',
@@ -265,7 +264,7 @@ function init_maksukaista_gateway()
 				$lang.'|'.
 				$return_url.'|'.
 				$return_url.'|'.
-				$notify_url.'|'.
+				$return_url.'|'.
 				$mk_selected.'|'.
 				$email.'|'.
 				$contact_id_post.'|'.
@@ -301,7 +300,7 @@ function init_maksukaista_gateway()
 				'LANG' => $lang,
 				'RETURN_ADDRESS' => $return_url,
 				'CANCEL_ADDRESS' => $return_url,
-				'NOTIFY_ADDRESS' => $notify_url,
+				'NOTIFY_ADDRESS' => $return_url,
 				'SELECTED' => $mk_selected,
 				'EMAIL' => $email,
 				'CONTACT_FIRSTNAME' => $contact_firstname,
@@ -322,12 +321,12 @@ function init_maksukaista_gateway()
 				$html = '<form action="' . $this->pay_url . '" name="maksukaista_pay_form" method="POST">';
 
 			foreach ($data as $key => $value)
-				$html .= "<input type='hidden' name='$key' value='$value' />";
+				$html .= '<input type="hidden" name="'.$key.'" value="'.htmlspecialchars($value).'" />';
 
 			if($items != ""){
 				foreach ($products as $product) {
 					foreach ($product as $key => $value) {
-						$html .= "<input name='".$key."[]' value='$value'  type='hidden' />";
+						$html .= '<input name="'.$key.'[]" value="'.htmlspecialchars($value).'"  type="hidden" />';
 					}
 				}
 			}
