@@ -3,7 +3,7 @@
 Plugin Name: Maksukaista Payment Gateway
 Plugin URI: http://www.maksukaista.fi
 Description: Maksukaista Payment Gateway Integration for Woocommerce
-Version: 2.1
+Version: 2.2
 Author: Paybyway Oy
 Author URI: http://www.maksukaista.fi
 */
@@ -51,7 +51,9 @@ function init_maksukaista_gateway()
 			$this->arvato = $this->get_option('arvato');
 
 			$this->send_items = $this->get_option('send_items');
+			$this->embed = $this->get_option('embed');
 
+			add_action('wp_enqueue_scripts', array( $this, 'payment_scripts' ) );
 			add_action('woocommerce_update_options_payment_gateways_' . $this->id, array($this, 'process_admin_options' ) );
 			add_action('woocommerce_api_wc_gateway_maksukaista', array($this, 'check_maksukaista_response' ) );
 			add_action('woocommerce_receipt_maksukaista', array($this, 'receipt_page'));
@@ -64,6 +66,17 @@ function init_maksukaista_gateway()
 		function is_valid_currency()
 		{
 			return in_array(get_option('woocommerce_currency'), array('EUR'));
+		}
+
+		function payment_scripts() {
+			if ( ! is_checkout() ) {
+				return;
+			}
+
+			// CSS Styles
+			wp_enqueue_style( 'woocommerce_maksukaista', untrailingslashit( plugins_url( basename( plugin_dir_path( __FILE__ ) ), basename( __FILE__ ) ) ) . '/assets/css/maksukaista.css', '', '', 'all');
+			// JS SCRIPTS
+			wp_enqueue_script( 'woocommerce_maksukaista', untrailingslashit( plugins_url( basename( plugin_dir_path( __FILE__ ) ), basename( __FILE__ ) ) ) . '/assets/js/maksukaista.js', array( 'jquery' ), '', true );
 		}
 
 		function init_form_fields()
@@ -143,13 +156,72 @@ function init_maksukaista_gateway()
 					'label' => __( "Send product breakdown to Maksukaista. \n(Supported on default Woocommerce installation.)", 'maksukaista' ),
 					'default' => 'yes'
 				),
+				'embed' => array(
+					'title' => __( 'Enable embedded payment', 'maksukaista' ),
+					'type' => 'checkbox',
+					'label' => __( "Enable this if you want to use Embedded-feature when customer chooses his payment method.", 'maksukaista' ),
+					'default' => 'no'
+				),
 			);
 		}
 
 		function payment_fields()
 		{
+			global $woocommerce;
+
+			$total = 0;
+
+			if(get_query_var('order-pay') != ''){
+				$order = new WC_Order(get_query_var('order-pay'));
+				$total = $order->order_total;
+			}
+
 			if ($this->description)
 				echo wpautop(wptexturize($this->description));
+			if($this->embed == 'yes' )
+			{
+				echo wpautop(wptexturize(__( 'Choose your payment method and click Pay for Order', 'maksukaista' )));
+
+				echo '<div id="maksukaista-bank-payments">';
+				if($this->ccards == 'yes')
+				{
+					echo '<div>'.wpautop(wptexturize(__( 'Payment card', 'maksukaista' ))).'</div>';
+					echo '<div id="maksukaista-button-visa" class="bank-button"></div>';
+					echo '<div id="maksukaista-button-master" class="bank-button"></div>';					
+				}			
+				if($this->banks == 'yes')
+				{
+					echo '<div>'.wpautop(wptexturize(__( 'Internet banking', 'maksukaista' ))).'</div>';
+					echo '<div id="maksukaista-button-nordea" class="bank-button"></div>';
+					echo '<div id="maksukaista-button-op" class="bank-button"></div>';
+					echo '<div id="maksukaista-button-danske" class="bank-button"></div>';
+					echo '<div id="maksukaista-button-saastopankki" class="bank-button"></div>';
+					echo '<div id="maksukaista-button-poppankki" class="bank-button"></div>';
+					echo '<div id="maksukaista-button-aktia" class="bank-button"></div>';
+					echo '<div id="maksukaista-button-handelsbanken" class="bank-button"></div>';
+					echo '<div id="maksukaista-button-spankki" class="bank-button"></div>';
+				}
+				if($this->arvato == 'yes' || ($this->cinvoices == 'yes' && ((!isset($order) && $woocommerce->cart->total > 5 && $woocommerce->cart->total < 2000) || ($total > 5 && $total < 2000))))
+				{
+					echo '<div id="maksukaista-cinvoice-payments">'; //???????
+					echo '<div>'.wpautop(wptexturize(__( 'Invoice or part payment', 'maksukaista' ))).'</div>';
+					if($this->arvato == 'yes')
+						echo '<div id="maksukaista-button-arvato" class="bank-button"></div>';
+					if($this->cinvoices == 'yes')
+					{
+						if($this->cinvoices == 'yes' && ((!isset($order) && $woocommerce->cart->total > 5 && $woocommerce->cart->total < 2000) || ($total > 5 && $total < 2000)))
+							echo '<div id="maksukaista-button-everyday" class="bank-button"></div>';
+						if($this->cinvoices == 'yes' && ((!isset($order) && $woocommerce->cart->total > 20 && $woocommerce->cart->total < 2000) || ($total > 20 && $total < 2000)))
+							echo '<div id="maksukaista-button-jousto" class="bank-button"></div>';				
+					}
+				}
+	
+				echo '</div>';
+
+				echo '<div id="maksukaista_bank_checkout_fields" style="display: none;">';
+				echo '<input id="maksukaista_selected_bank" class="input-hidden" type="hidden" name="maksukaista_selected_bank" />';
+				echo '</div>';
+			}
 		}
 
 		function receipt_page($order_id)
@@ -181,6 +253,37 @@ function init_maksukaista_gateway()
 			if($this->arvato == 'yes')
 				$mk_selected .= ',ARVATO';
 
+/*
+BANKS - enables all accessible bank payments
+CREDITCARDS - enables all accessible card payments
+CREDITINVOICES - enables all accessible credit invoice payments
+NORDEA, HANDELSBANKEN, OSUUSPANKKI, DANSKEBANK, SPANKKI, SAASTOPANKKI, PAIKALLISOSUUSPANKKI, AKTIA
+EVERYDAY, JOUSTORAHA - Everyday allows payments between 5.01€ and 2000€, Jousto between 20€ and 
+*/
+			if($this->embed == 'yes' )
+			{
+				$bank_array = array(
+					'nordea' => 'NORDEA',
+					'op' => 'OSUUSPANKKI',
+					'danske' => 'DANSKEBANK',
+					'saastopankki' => 'SAASTOPANKKI',
+					'poppankki' => 'PAIKALLISOSUUSPANKKI',
+					'aktia' => 'AKTIA',
+					'handelsbanken' => 'HANDELSBANKEN',
+					'spankki' => 'SPANKKI',
+					'arvato' => $mk_selected, //Use all enabled and arvato url
+					'everyday' => 'EVERYDAY',
+					'jousto' => 'JOUSTORAHA',
+					'master' => 'CREDITCARDS',
+					'visa' => 'CREDITCARDS'
+				);
+				$maksukaista_selected_bank = get_post_meta( $order_id, '_maksukaista_selected_bank_', true);
+				if ($maksukaista_selected_bank!='') {
+					if (array_key_exists($maksukaista_selected_bank, $bank_array)) {
+						$mk_selected = $bank_array[$maksukaista_selected_bank];
+					}
+				}
+			}
 			$email = $order->billing_email;
 			$contact_id_post = "";
 			$contact_firstname = $order->billing_first_name;
@@ -315,7 +418,7 @@ function init_maksukaista_gateway()
 				'AUTHCODE' => $authcode
 			);
 
-			if($this->arvato == 'yes')
+			if($this->arvato == 'yes' && strpos($mk_selected,'ARVATO') !== false) //If arvato enabled and selected includes ARVATO
 				$html = '<form action="' . $this->pay_url . '?arvato" name="maksukaista_pay_form" method="POST">';
 			else
 				$html = '<form action="' . $this->pay_url . '" name="maksukaista_pay_form" method="POST">';
@@ -332,7 +435,7 @@ function init_maksukaista_gateway()
 			}
 
 			$html .='</form>';
-			$html .= '<script>document.maksukaista_pay_form.submit();</script>';
+			$html .= '<script> document.maksukaista_pay_form.submit();</script>';
 			echo $html;
 		}
 
@@ -340,7 +443,14 @@ function init_maksukaista_gateway()
 		{
 			global $woocommerce;
 
-			$order = new WC_Order($order_id);
+			$order = new WC_Order($order_id);			
+
+			$maksukaista_selected_bank = isset( $_POST['maksukaista_selected_bank'] ) ? wc_clean( $_POST['maksukaista_selected_bank'] ) : '';
+			update_post_meta( $order->id, '_maksukaista_selected_bank_', $maksukaista_selected_bank );
+
+
+
+
 			$redirect = $order->get_checkout_payment_url(true);
 			//Empty cart when redirecting to Maksukaista, so new orders won't override this order.
 			$woocommerce->cart->empty_cart();

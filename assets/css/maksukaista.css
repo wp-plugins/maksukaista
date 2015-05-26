@@ -1,0 +1,143 @@
+/* Maksukaista bank payment form */
+
+#payment #maksukaista-bank-payments {
+  position: relative;
+  clear: both;
+  overflow: auto;
+  margin: 0 0 10px 0;
+
+}
+#payment #maksukaista-bank-payments:after {
+  content: ' ';
+  clear: both;
+
+}
+ul.payment_methods li {
+  width: 100%;
+}
+.form-row.place-order {
+  margin-top: 10px;
+}
+ul.payment_methods li.payment_method_maksukaista p {
+  clear: both;
+}
+#payment #maksukaista-bank-payments .bank-button {
+  background-image: url(../images/bank-buttons.png);
+  background-color: #fff;
+  background-position: 0px 0px;
+  width: 140px;
+  height: 70px;
+  border: 2px solid #eee;
+  border-radius: 2px;
+  
+  float: left;
+  display: block;
+  margin: 0 6px 6px 0;
+  cursor: pointer;
+}
+#payment #banktitle{
+  margin-bottom: 0;
+}
+#payment #maksukaista-bank-payments .bank-button:hover {
+  box-shadow: 1px 1px 4px rgba(50,100,150,0.4);
+  cursor: pointer;
+}
+#payment #maksukaista-bank-payments .bank-button.selected {
+  border-color: #005f9c;   
+}
+
+#payment #maksukaista-bank-payments #maksukaista-button-arvato {
+  background-position: -420px -70px;
+}
+#payment #maksukaista-bank-payments #maksukaista-button-arvato.selected,
+#payment #maksukaista-bank-payments #maksukaista-button-arvato:hover {
+  background-position: -420px 0px;
+}
+#payment #maksukaista-bank-payments #maksukaista-button-nordea {
+  background-position: 0px -70px;
+}
+#payment #maksukaista-bank-payments #maksukaista-button-nordea.selected,
+#payment #maksukaista-bank-payments #maksukaista-button-nordea:hover {
+  background-position: 0px 0px;
+}
+#payment #maksukaista-bank-payments #maksukaista-button-op {
+  background-position: -140px -72px;  
+}
+#payment #maksukaista-bank-payments #maksukaista-button-op.selected,
+#payment #maksukaista-bank-payments #maksukaista-button-op:hover {
+  background-position: -140px -2px;
+}
+#payment #maksukaista-bank-payments #maksukaista-button-danske {
+  background-position: -560px -70px;
+}
+#payment #maksukaista-bank-payments #maksukaista-button-danske.selected,
+#payment #maksukaista-bank-payments #maksukaista-button-danske:hover {
+  background-position: -560px 0px;
+}
+#payment #maksukaista-bank-payments #maksukaista-button-saastopankki {
+  background-position: -980px -70px;
+}
+#payment #maksukaista-bank-payments #maksukaista-button-saastopankki.selected,
+#payment #maksukaista-bank-payments #maksukaista-button-saastopankki:hover {
+  background-position: -980px 0px;
+}
+#payment #maksukaista-bank-payments #maksukaista-button-poppankki {
+  background-position: -840px -70px;  
+}
+#payment #maksukaista-bank-payments #maksukaista-button-poppankki.selected,
+#payment #maksukaista-bank-payments #maksukaista-button-poppankki:hover {
+  background-position: -840px 0px;
+}
+#payment #maksukaista-bank-payments #maksukaista-button-aktia {
+  background-position: -280px -70px;  
+}
+#payment #maksukaista-bank-payments #maksukaista-button-aktia.selected,
+#payment #maksukaista-bank-payments #maksukaista-button-aktia:hover {
+  background-position: -280px 0px;
+}
+#payment #maksukaista-bank-payments #maksukaista-button-handelsbanken {
+  background-position: -700px -70px;
+}
+#payment #maksukaista-bank-payments #maksukaista-button-handelsbanken.selected,
+#payment #maksukaista-bank-payments #maksukaista-button-handelsbanken:hover {
+  background-position: -700px 0px;
+}
+#payment #maksukaista-bank-payments #maksukaista-button-spankki {
+  background-position: -1120px -70px;
+}
+#payment #maksukaista-bank-payments #maksukaista-button-spankki.selected,
+#payment #maksukaista-bank-payments #maksukaista-button-spankki:hover {
+  background-position: -1120px 0px;
+}
+#payment #maksukaista-bank-payments #maksukaista-button-everyday {
+  background-position: -1261px -73px;
+}
+#payment #maksukaista-bank-payments #maksukaista-button-everyday.selected,
+#payment #maksukaista-bank-payments #maksukaista-button-everyday:hover {
+  background-position: -1261px -3px;
+}
+
+#payment #maksukaista-bank-payments #maksukaista-button-jousto {
+  background-position: -1400px -70px;
+}
+#payment #maksukaista-bank-payments #maksukaista-button-jousto.selected,
+#payment #maksukaista-bank-payments #maksukaista-button-jousto:hover {
+  background-position: -1400px 0px;
+}
+
+#payment #maksukaista-bank-payments #maksukaista-button-master {
+  background-position: -1540px -70px;
+}
+#payment #maksukaista-bank-payments #maksukaista-button-master.selected,
+#payment #maksukaista-bank-payments #maksukaista-button-master:hover {
+  background-position: -1540px 0px;
+}
+#payment #maksukaista-bank-payments #maksukaista-button-visa {
+  background-position: -1685px -70px;
+}
+#payment #maksukaista-bank-payments #maksukaista-button-visa.selected,
+#payment #maksukaista-bank-payments #maksukaista-button-visa:hover {
+  background-position: -1685px 0px;
+}
+
+
