@@ -1,0 +1,8 @@
+<wpml-config>
+	<admin-texts>
+		<key name="woocommerce_maksukaista_settings">
+			<key name="maksukaista_description" />
+			<key name="title" />
+		</key>
+	</admin-texts> 
+</wpml-config>

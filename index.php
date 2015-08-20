@@ -3,7 +3,7 @@
 Plugin Name: Maksukaista Payment Gateway
 Plugin URI: http://www.maksukaista.fi
 Description: Maksukaista Payment Gateway Integration for Woocommerce
-Version: 2.2
+Version: 2.2.1
 Author: Paybyway Oy
 Author URI: http://www.maksukaista.fi
 */
@@ -29,7 +29,7 @@ function init_maksukaista_gateway()
 		{
 			$this->id = 'maksukaista';
 			$this->has_fields = false;
-			$this->method_title = 'Maksukaista';
+			$this->method_title = __( 'Maksukaista', 'maksukaista' );
 			$this->method_description = 'Maksukaista Payment Gateway integration for Woocommerce';
 
 			$this->init_form_fields();
@@ -43,7 +43,7 @@ function init_maksukaista_gateway()
 			$this->pay_url = $this->get_option('pay_url');
 			$this->settle_url = $this->get_option('settle_url');
 			$this->ordernumber_prefix = $this->get_option('ordernumber_prefix');
-			$this->description = $this->get_option('description');
+			$this->description = $this->get_option('maksukaista_description');
 
 			$this->banks = $this->get_option('banks');
 			$this->ccards = $this->get_option('ccards');
@@ -94,10 +94,10 @@ function init_maksukaista_gateway()
 					'description' => __( 'This controls the title which the user sees during checkout.', 'maksukaista' ),
 					'default' => __( 'Maksukaista', 'maksukaista' )
 				),
-				'description' => array(
+				'maksukaista_description' => array(
 					'title' => __( 'Customer Message', 'maksukaista' ),
 					'type' => 'textarea',
-					'default' => 'Maksukaista -palvelussa voit maksaa ostoksesi turvallisesti verkkopankin kautta, luottokortilla tai luottolaskulla.'
+					'default' => __( 'Maksukaista -palvelussa voit maksaa ostoksesi turvallisesti verkkopankin kautta, luottokortilla tai luottolaskulla.', 'maksukaista')
 				),
 				'merchant_id' => array(
 					'title' => __( 'Sub-merchant id', 'maksukaista' ),
@@ -177,7 +177,7 @@ function init_maksukaista_gateway()
 			}
 
 			if ($this->description)
-				echo wpautop(wptexturize($this->description));
+				echo wpautop(wptexturize(__($this->description, 'maksukaista')));
 			if($this->embed == 'yes' )
 			{
 				echo wpautop(wptexturize(__( 'Choose your payment method and click Pay for Order', 'maksukaista' )));
@@ -296,12 +296,7 @@ EVERYDAY, JOUSTORAHA - Everyday allows payments between 5.01€ and 2000€, Jou
 
 			$amount =  (int)(round($order->order_total*100, 0));
 			$currency = get_woocommerce_currency();
-
-			$order_number = (strlen($this->ordernumber_prefix)  > 0) ?  $this->get_option('ordernumber_prefix') . '_'  .$order_id : $order_id;
-			$order_number .=  '-' . str_pad(time().rand(0,9999), 5, "1", STR_PAD_RIGHT);
-			$order_number_text =  __('CREATED: ', 'maksukaista').'Maksukaista ' . __('order number', 'maksukaista');
-			$order->add_order_note("$order_number_text: $order_number");
-			update_post_meta($order_id, 'maksukaista_order_number', $order_number);
+			
 			update_post_meta($order_id, 'maksukaista_is_settled', 1);
 
 			$finn_langs = array('fi-FI', 'fi', 'fi_FI');
@@ -357,6 +352,8 @@ EVERYDAY, JOUSTORAHA - Everyday allows payments between 5.01€ and 2000€, Jou
 				$items = count($products);
 			else
 				$items = '';
+
+			$order_number = get_post_meta( $order->id, 'maksukaista_order_number', true );
 
 			$authcode =
 				'2.1|'.
@@ -448,8 +445,11 @@ EVERYDAY, JOUSTORAHA - Everyday allows payments between 5.01€ and 2000€, Jou
 			$maksukaista_selected_bank = isset( $_POST['maksukaista_selected_bank'] ) ? wc_clean( $_POST['maksukaista_selected_bank'] ) : '';
 			update_post_meta( $order->id, '_maksukaista_selected_bank_', $maksukaista_selected_bank );
 
-
-
+			$order_number = (strlen($this->ordernumber_prefix)  > 0) ?  $this->get_option('ordernumber_prefix') . '_'  .$order_id : $order_id;
+			$order_number .=  '-' . str_pad(time().rand(0,9999), 5, "1", STR_PAD_RIGHT);
+			$order_number_text =  __('CREATED: ', 'maksukaista').'Maksukaista ' . __('order number', 'maksukaista');
+			$order->add_order_note("$order_number_text: $order_number");
+			update_post_meta($order_id, 'maksukaista_order_number', $order_number);
 
 			$redirect = $order->get_checkout_payment_url(true);
 			//Empty cart when redirecting to Maksukaista, so new orders won't override this order.
